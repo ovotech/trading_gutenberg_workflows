@@ -1,0 +1,54 @@
+name: Publish Scala Image
+
+env:
+  GCLOUD_PROJECT_NUMBER: "755795606445"
+  GCLOUD_PROJECT_NAME: "trading-prod-228918"
+  ARTIFACT_REGISTRY: "europe-west2-docker.pkg.dev"
+  DOCKER_REPOSITORY: "trading-docker-repo"
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        required: true
+        type: string
+      build_command:
+        required: true
+        type: string
+    secrets:
+      token:
+        required: true
+
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: SET UP - Checkout Code
+        uses: actions/checkout@v3
+
+      - name: SET UP - Get Commit Tag
+        run: echo "GIT_TAG=`echo $(git describe --tags --abbrev=0)`" >> $GITHUB_ENV
+
+      - name: SET UP - Google Cloud Auth
+        uses: google-github-actions/auth@v0.8.0
+        with:
+          workload_identity_provider: 'projects/${{env.GCLOUD_PROJECT_NUMBER}}/locations/global/workloadIdentityPools/gutenberg-github-actions/providers/github'
+          service_account: 'gutenberg-github-actions@${{env.GCLOUD_PROJECT_NAME}}.iam.gserviceaccount.com'
+
+      - name: SET UP - Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.6.0
+
+      - name: Docker - Build Image
+        run: ${{ inputs.build_command }}
+
+      - name: Docker - Tag
+        run: docker tag ${{inputs.image_name}}:latest ${{env.ARTIFACT_REGISTRY}}/${{env.GCLOUD_PROJECT_NAME}}/${{env.DOCKER_REPOSITORY}}/${{inputs.image_name}}:${{env.GIT_TAG}}
+
+      - name: SET UP - Authenticate Docker to Google Artifact Registry
+        run: gcloud auth configure-docker --quiet ${{env.ARTIFACT_REGISTRY}}
+
+      - name: Docker - Publish to Artifact Registry
+        run: docker push
