@@ -1,4 +1,4 @@
-name: Publish Scala Image
+name: Publish Image
 
 env:
   GCLOUD_PROJECT_NUMBER: "755795606445"
@@ -15,9 +15,6 @@ on:
       build_command:
         required: true
         type: string
-    secrets:
-      token:
-        required: true
 
 jobs:
   action:
@@ -28,9 +25,27 @@ jobs:
     steps:
       - name: SET UP - Checkout Code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: SET UP - Get Commit Tag
-        run: echo "GIT_TAG=`echo $(git describe --tags --abbrev=0)`" >> $GITHUB_ENV
+        run: |
+          #!/bin/sh
+          set -ox
+
+          get_tag () {
+          git describe --exact-match
+          }
+
+          get_tag
+
+          if [ $? -eq 0 ]; then
+          echo "GIT_TAG=$(get_tag)" >> $GITHUB_ENV
+          else
+          echo "The commit to be built is not tagged correctly. It requires exactly one tag for the SemVer of the build. Locally, try running git tag -a VERSION && git push origin VERSION."
+          exit 1
+          fi
+
 
       - name: SET UP - Google Cloud Auth
         uses: google-github-actions/auth@v0.8.0
@@ -41,14 +56,17 @@ jobs:
       - name: SET UP - Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v0.6.0
 
+      - name: SET UP - Determine new tag
+        run: echo "DOCKER_TAG=${{env.ARTIFACT_REGISTRY}}/${{env.GCLOUD_PROJECT_NAME}}/${{env.DOCKER_REPOSITORY}}/${{inputs.image_name}}:${{env.GIT_TAG}}" >> $GITHUB_ENV
+
       - name: Docker - Build Image
         run: ${{ inputs.build_command }}
 
       - name: Docker - Tag
-        run: docker tag ${{inputs.image_name}}:latest ${{env.ARTIFACT_REGISTRY}}/${{env.GCLOUD_PROJECT_NAME}}/${{env.DOCKER_REPOSITORY}}/${{inputs.image_name}}:${{env.GIT_TAG}}
+        run: docker tag ${{inputs.image_name}}:latest ${{env.DOCKER_TAG}}
 
       - name: SET UP - Authenticate Docker to Google Artifact Registry
         run: gcloud auth configure-docker --quiet ${{env.ARTIFACT_REGISTRY}}
 
       - name: Docker - Publish to Artifact Registry
-        run: docker push
+        run: docker push ${{env.DOCKER_TAG}}
