@@ -42,13 +42,13 @@ jobs:
 
 
       - name: SET UP - Google Cloud Auth
-        uses: google-github-actions/auth@v0.8.0
+        uses: google-github-actions/auth@v1.0.0
         with:
           workload_identity_provider: 'projects/${{env.GCLOUD_PROJECT_NUMBER}}/locations/global/workloadIdentityPools/gutenberg-github-actions/providers/github'
           service_account: 'gutenberg-github-actions@${{env.GCLOUD_PROJECT_NAME}}.iam.gserviceaccount.com'
 
       - name: SET UP - Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v0.6.0
+        uses: google-github-actions/setup-gcloud@v1.0.0
 
       - name: SET UP - Determine new tag
         run: echo "DOCKER_TAG=${{env.ARTIFACT_REGISTRY}}/${{env.GCLOUD_PROJECT_NAME}}/${{env.DOCKER_REPOSITORY}}/${{inputs.image_name}}:${{env.GIT_TAG}}" >> "$GITHUB_ENV"
