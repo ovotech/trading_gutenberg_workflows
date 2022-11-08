@@ -1,0 +1,66 @@
+name: Publish Image
+
+env:
+  GCLOUD_PROJECT_NUMBER: "755795606445"
+  GCLOUD_PROJECT_NAME: "trading-prod-228918"
+  ARTIFACT_REGISTRY: "europe-west2-docker.pkg.dev"
+  DOCKER_REPOSITORY: "trading-docker-repo"
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        required: true
+        type: string
+      build_command:
+        required: true
+        type: string
+
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: SET UP - Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: SET UP - Get Commit Tag
+        run: |
+          #!/bin/sh
+          set -x
+
+          if ! GIT_TAG=$(git describe --exact-match); then
+          printf "The commit to be built is not tagged correctly. It requires exactly one tag for the SemVer of the build. Locally, try running git tag -a <VERSION> && git push origin <VERSION>."
+          exit 1
+          fi
+          
+          echo "GIT_TAG=$GIT_TAG" >> "$GITHUB_ENV"
+
+
+      - name: SET UP - Google Cloud Auth
+        uses: google-github-actions/auth@v1.0.0
+        with:
+          workload_identity_provider: 'projects/${{env.GCLOUD_PROJECT_NUMBER}}/locations/global/workloadIdentityPools/gutenberg-github-actions/providers/github'
+          service_account: 'gutenberg-github-actions@${{env.GCLOUD_PROJECT_NAME}}.iam.gserviceaccount.com'
+
+      - name: SET UP - Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1.0.0
+
+      - name: SET UP - Determine new tag
+        run: echo "DOCKER_TAG=${{env.ARTIFACT_REGISTRY}}/${{env.GCLOUD_PROJECT_NAME}}/${{env.DOCKER_REPOSITORY}}/${{inputs.image_name}}:${{env.GIT_TAG}}" >> "$GITHUB_ENV"
+
+      - name: Docker - Build Image
+        run: ${{ inputs.build_command }}
+
+      - name: Docker - Tag
+        run: docker tag ${{inputs.image_name}}:latest ${{env.DOCKER_TAG}}
+
+      - name: SET UP - Authenticate Docker to Google Artifact Registry
+        run: gcloud auth configure-docker --quiet ${{env.ARTIFACT_REGISTRY}}
+
+      - name: Docker - Publish to Artifact Registry
+        run: docker push ${{env.DOCKER_TAG}}

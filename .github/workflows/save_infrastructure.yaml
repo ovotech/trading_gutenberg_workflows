@@ -1,0 +1,17 @@
+name: Save Infrastructure
+
+on:
+  workflow_call:
+    secrets:
+      token:
+        required: true
+
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: Not Yet Implemented
+        run: echo Not Yet Implemented
