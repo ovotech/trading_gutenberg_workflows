@@ -31,7 +31,7 @@ jobs:
       - name: SET UP - Get Commit Tag
         run: |
           #!/bin/sh
-          set -ox
+          set -x
 
           if ! GIT_TAG=$(git describe --exact-match); then
           printf "The commit to be built is not tagged correctly. It requires exactly one tag for the SemVer of the build. Locally, try running git tag -a <VERSION> && git push origin <VERSION>."
