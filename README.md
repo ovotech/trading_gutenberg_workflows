@@ -24,4 +24,4 @@ jobs:
       service_name: your_service_name
       build_command: docker build -t your_service_name
 ```
-Your image will be built and pushed to Artifact Registry upon a merge to `main`.
+Your image will be built and pushed to Artifact Registry upon a merge to `main`. The image version will be set from the Git tag of the merge commit.
