@@ -52,15 +52,15 @@ jobs:
 
       - name: SET UP - Determine new tag
         run: echo "DOCKER_TAG=${{env.ARTIFACT_REGISTRY}}/${{env.GCLOUD_PROJECT_NAME}}/${{env.DOCKER_REPOSITORY}}/${{inputs.image_name}}:${{env.GIT_TAG}}" >> "$GITHUB_ENV"
+  
+      - name: SET UP - Authenticate Docker to Google Artifact Registry
+        run: gcloud auth configure-docker --quiet ${{env.ARTIFACT_REGISTRY}}
 
       - name: Docker - Build Image
         run: ${{ inputs.build_command }}
 
       - name: Docker - Tag
         run: docker tag ${{inputs.image_name}}:latest ${{env.DOCKER_TAG}}
-
-      - name: SET UP - Authenticate Docker to Google Artifact Registry
-        run: gcloud auth configure-docker --quiet ${{env.ARTIFACT_REGISTRY}}
 
       - name: Docker - Publish to Artifact Registry
         run: docker push ${{env.DOCKER_TAG}}
