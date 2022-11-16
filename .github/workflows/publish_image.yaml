@@ -33,7 +33,7 @@ jobs:
           #!/bin/sh
           set -x
 
-          if ! GIT_TAG=$(git describe --abbrev=0); then
+          if ! GIT_TAG=$(git describe --abbrev=0 --exact-match); then
           printf "The commit to be built is not tagged correctly. It requires exactly one tag for the SemVer of the build. Locally, try running git tag -a <VERSION> && git push origin <VERSION>."
           exit 1
           fi
