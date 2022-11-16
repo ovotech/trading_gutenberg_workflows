@@ -66,7 +66,7 @@ jobs:
 
       - name: Docker - Publish to Artifact Registry
         run: |
-          existing_tags=$(gcloud container images list-tags --filter="tags:${{env.GIT_TAG}}" --format=json ${{env.IMAGE_PATH}})
+          existing_tags=$(gcloud container images list-tags --filter=tags:${{env.GIT_TAG}} --format=json ${{env.IMAGE_PATH}})
           if [[ "$existing_tags" == "[]" ]]; then
             docker push ${{env.DOCKER_TAG}}
           else
