@@ -50,10 +50,11 @@ jobs:
       - name: SET UP - Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1.0.0
 
+      - name: SET UP - Determine image path
+        run: echo "IMAGE_PATH=${{env.ARTIFACT_REGISTRY}}/${{env.GCLOUD_PROJECT_NAME}}/${{env.DOCKER_REPOSITORY}}/${{inputs.image_name}}" >> "$GITHUB_ENV"
+
       - name: SET UP - Determine new tag
-        run: |
-          echo "IMAGE_PATH=${{env.ARTIFACT_REGISTRY}}/${{env.GCLOUD_PROJECT_NAME}}/${{env.DOCKER_REPOSITORY}}/${{inputs.image_name}}" >> "$GITHUB_ENV"
-          echo "DOCKER_TAG=${{env.IMAGE_PATH}}:${{env.GIT_TAG}}" >> "$GITHUB_ENV"
+        run: echo "DOCKER_TAG=${{env.IMAGE_PATH}}:${{env.GIT_TAG}}" >> "$GITHUB_ENV"
   
       - name: SET UP - Authenticate Docker to Google Artifact Registry
         run: gcloud auth configure-docker --quiet ${{env.ARTIFACT_REGISTRY}}
