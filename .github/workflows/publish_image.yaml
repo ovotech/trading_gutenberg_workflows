@@ -33,7 +33,7 @@ jobs:
           #!/bin/sh
           set -x
 
-          if ! GIT_TAG=$(git describe --abbrev=0); then
+          if ! GIT_TAG=$(git describe --abbrev=0 --candidates=1); then
           printf "The commit to be built is not tagged correctly. It requires exactly one tag for the SemVer of the build. Locally, try running git tag -a <VERSION> && git push origin <VERSION>."
           exit 1
           fi
@@ -50,9 +50,12 @@ jobs:
       - name: SET UP - Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1.0.0
 
+      - name: SET UP - Determine image path
+        run: echo "IMAGE_PATH=${{env.ARTIFACT_REGISTRY}}/${{env.GCLOUD_PROJECT_NAME}}/${{env.DOCKER_REPOSITORY}}/${{inputs.image_name}}" >> "$GITHUB_ENV"
+
       - name: SET UP - Determine new tag
-        run: echo "DOCKER_TAG=${{env.ARTIFACT_REGISTRY}}/${{env.GCLOUD_PROJECT_NAME}}/${{env.DOCKER_REPOSITORY}}/${{inputs.image_name}}:${{env.GIT_TAG}}" >> "$GITHUB_ENV"
-  
+        run: echo "DOCKER_TAG=${{env.IMAGE_PATH}}:${{env.GIT_TAG}}" >> "$GITHUB_ENV"
+
       - name: SET UP - Authenticate Docker to Google Artifact Registry
         run: gcloud auth configure-docker --quiet ${{env.ARTIFACT_REGISTRY}}
 
@@ -63,4 +66,11 @@ jobs:
         run: docker tag ${{inputs.image_name}}:latest ${{env.DOCKER_TAG}}
 
       - name: Docker - Publish to Artifact Registry
-        run: docker push ${{env.DOCKER_TAG}}
+        run: |
+          existing_tags=$(gcloud container images list-tags --filter=tags:${{env.GIT_TAG}} --format=json ${{env.IMAGE_PATH}})
+          if [[ "$existing_tags" == "[]" ]]; then
+            docker push ${{env.DOCKER_TAG}}
+          else
+            printf "docker image with this tag already exists, not pushing"
+            exit 1
+          fi
